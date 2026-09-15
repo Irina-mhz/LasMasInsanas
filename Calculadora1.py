@@ -6,7 +6,7 @@ root.geometry('380x520')
 root.resizable(False, False)
 root.configure(bg='#f7f7f7')
 
-# Paleta de colores original
+# Paleta de colores
 color_texto = '#000000'
 color_boton = "#ffc8dd"
 color_boton_op = "#bde0fe"
@@ -25,7 +25,7 @@ resultado_mostrado = False
 display_frame = tk.Frame(root, bg='#ffffff', bd=2, relief='sunken')
 display_frame.grid(row=0, column=0, columnspan=4, sticky='nsew', padx=10, pady=10)
 
-# Visor Secundario (Historial de la operación previa - RF-05)
+# Visor Secundario (Historial previo)
 history_label = tk.Label(
     display_frame, textvariable=history_text_var,
     font=('Arial', 11), bg='#ffffff', fg='#777777', anchor='e', padx=10
@@ -53,12 +53,11 @@ def press_num(char):
     if not calculadora_encendida:
         return
 
-    # Si se acaba de mostrar un resultado, empezar uno nuevo al presionar un dígito
     if resultado_mostrado:
         expression = ''
         resultado_mostrado = False
 
-    # Validación de punto decimal único (RF-03)
+    # Validación de punto decimal único
     if char == '.':
         current_op = get_current_operand(expression)
         if '.' in current_op:
@@ -68,7 +67,6 @@ def press_num(char):
             screen_text.set(expression)
             return
 
-    # Si la expresión era solo '0' y entra otro número
     if expression == '0' and char != '.':
         expression = str(char)
     else:
@@ -82,7 +80,6 @@ def press_operator(op):
     if not calculadora_encendida:
         return
 
-    # Si venimos de un resultado, encadenamos el cálculo (RF-07)
     if resultado_mostrado:
         resultado_mostrado = False
 
@@ -92,7 +89,6 @@ def press_operator(op):
             screen_text.set(expression)
         return
 
-    # Reemplazar operador si el último carácter ya era uno
     if expression[-1] in "+-*/":
         expression = expression[:-1] + op
     else:
@@ -101,12 +97,45 @@ def press_operator(op):
     screen_text.set(expression)
 
 
+def toggle_sign():
+    """Cambia el signo del valor actual (+/-)."""
+    global expression, resultado_mostrado
+    if not calculadora_encendida or not expression or expression == '0':
+        return
+
+    try:
+        current_val = float(expression) if resultado_mostrado else float(screen_text.get())
+        current_val = -current_val
+        formatted = f"{current_val:.2f}" if current_val % 1 != 0 else f"{int(current_val)}"
+        expression = formatted
+        screen_text.set(expression)
+    except ValueError:
+        pass
+
+
+def apply_percentage():
+    """Aplica la función de porcentaje (%) sobre el número en pantalla."""
+    global expression, resultado_mostrado
+    if not calculadora_encendida or not expression:
+        return
+
+    try:
+        current_val = float(expression) if resultado_mostrado else float(screen_text.get())
+        percent_val = current_val / 100.0
+        formatted = f"{percent_val:.2f}"
+        expression = formatted
+        screen_text.set(expression)
+        resultado_mostrado = True
+    except ValueError:
+        pass
+
+
 def calcular_izq_a_der(exp):
-    """Evalúa la expresión secuencialmente con manejo de división por cero (RF-01, RF-04)."""
+    """Evalúa la expresión secuencialmente de izquierda a derecha."""
     tokens = []
     num = ""
     i = 0
-    # Manejar si empieza con número negativo
+
     if exp.startswith("-"):
         num = "-"
         i = 1
@@ -161,20 +190,14 @@ def equalpress():
         resultado_mostrado = True
         return
 
-    # Formato a 2 decimales (RF-02)
     formatted_result = f"{result:.2f}"
-
-    # Guardar en el visor de historial previo (RF-05)
     history_text_var.set(f"{expression} = {formatted_result}")
-
-    # Mostrar en pantalla principal
     screen_text.set(formatted_result)
     expression = formatted_result
     resultado_mostrado = True
 
 
 def clear():
-    """Borrado total (C) - RF-06."""
     global expression, resultado_mostrado
     if not calculadora_encendida:
         return
@@ -184,7 +207,6 @@ def clear():
 
 
 def backspace():
-    """Borrado del último carácter (CE / Backspace) - RF-06."""
     global expression, resultado_mostrado
     if not calculadora_encendida:
         return
@@ -214,28 +236,36 @@ def encender():
     screen_text.set('0')
 
 
-# --- Distribución de Teclado Clásico (RNF-02) ---
+# --- Distribución de Teclado Clásico con % y +/- ---
 layout = [
     [("ON", "on"), ("OFF", "off"), ("C", "clear"), ("CE", "back")],
-    [("7", "num"), ("8", "num"), ("9", "num"), ("/", "op")],
-    [("4", "num"), ("5", "num"), ("6", "num"), ("*", "op")],
-    [("1", "num"), ("2", "num"), ("3", "num"), ("-", "op")],
-    [("0", "num"), (".", "num"), ("=", "equal"), ("+", "op")]
+    [("%", "pct"), ("+/-", "sign"), ("/", "op"), ("*", "op")],
+    [("7", "num"), ("8", "num"), ("9", "num"), ("-", "op")],
+    [("4", "num"), ("5", "num"), ("6", "num"), ("+", "op")],
+    [("1", "num"), ("2", "num"), ("3", "num"), ("=", "equal")],
+    [("0", "num"), (".", "num"), ("", "empty"), ("", "empty")]
 ]
 
 for r, fila in enumerate(layout, start=1):
     for c, (texto, tipo) in enumerate(fila):
+        if tipo == "empty":
+            continue
+
+        # Span del botón 0 para cubrir espacio
+        colspan = 2 if texto == "0" else 1
+
         if tipo == "num":
             boton = tk.Button(
                 root, text=texto, font=('Arial', 14, 'bold'),
                 bg=color_boton, fg=color_texto, relief='flat',
                 command=lambda t=texto: press_num(t)
             )
-        elif tipo == "op":
+        elif tipo in ("op", "pct", "sign"):
+            cmd = press_operator if tipo == "op" else (apply_percentage if tipo == "pct" else toggle_sign)
             boton = tk.Button(
                 root, text=texto, font=('Arial', 14, 'bold'),
                 bg=color_boton_op, fg=color_texto, relief='flat',
-                command=lambda t=texto: press_operator(t)
+                command=lambda op=texto, c=cmd: c(op) if tipo == "op" else c()
             )
         elif tipo == "equal":
             boton = tk.Button(
@@ -249,24 +279,18 @@ for r, fila in enumerate(layout, start=1):
                 bg=color_boton_clear, fg=color_texto, relief='flat',
                 command=clear if tipo == "clear" else backspace
             )
-        elif tipo == "on":
+        elif tipo in ("on", "off"):
             boton = tk.Button(
                 root, text=texto, font=('Arial', 11, 'bold'),
                 bg=color_boton_off, fg=color_texto, relief='flat',
-                command=encender
-            )
-        elif tipo == "off":
-            boton = tk.Button(
-                root, text=texto, font=('Arial', 11, 'bold'),
-                bg=color_boton_off, fg=color_texto, relief='flat',
-                command=apagar
+                command=encender if tipo == "on" else apagar
             )
 
-        boton.grid(row=r, column=c, padx=4, pady=4, sticky="nsew")
+        boton.grid(row=r, column=c, columnspan=colspan, padx=4, pady=4, sticky="nsew")
 
 # Configurar expansión de rejilla
 root.grid_rowconfigure(0, weight=2)
-for i in range(1, 6):
+for i in range(1, 7):
     root.grid_rowconfigure(i, weight=1)
 for j in range(4):
     root.grid_columnconfigure(j, weight=1)
