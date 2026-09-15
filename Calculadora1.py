@@ -2,7 +2,7 @@ import tkinter as tk
 
 root = tk.Tk()
 root.title('Calculadora')
-root.geometry('380x520')
+root.geometry('380x540')
 root.resizable(False, False)
 root.configure(bg='#f7f7f7')
 
@@ -25,7 +25,7 @@ resultado_mostrado = False
 display_frame = tk.Frame(root, bg='#ffffff', bd=2, relief='sunken')
 display_frame.grid(row=0, column=0, columnspan=4, sticky='nsew', padx=10, pady=10)
 
-# Visor Secundario (Historial previo)
+# Visor Secundario (Historial previo - RF-05)
 history_label = tk.Label(
     display_frame, textvariable=history_text_var,
     font=('Arial', 11), bg='#ffffff', fg='#777777', anchor='e', padx=10
@@ -57,7 +57,7 @@ def press_num(char):
         expression = ''
         resultado_mostrado = False
 
-    # Validación de punto decimal único
+    # Validación de punto decimal único (RF-03)
     if char == '.':
         current_op = get_current_operand(expression)
         if '.' in current_op:
@@ -104,26 +104,24 @@ def toggle_sign():
         return
 
     try:
-        current_val = float(expression) if resultado_mostrado else float(screen_text.get())
-        current_val = -current_val
-        formatted = f"{current_val:.2f}" if current_val % 1 != 0 else f"{int(current_val)}"
-        expression = formatted
+        val = float(expression)
+        val = -val
+        expression = f"{val:.2f}" if val % 1 != 0 else f"{int(val)}"
         screen_text.set(expression)
     except ValueError:
         pass
 
 
 def apply_percentage():
-    """Aplica la función de porcentaje (%) sobre el número en pantalla."""
+    """Aplica la función de porcentaje (%)."""
     global expression, resultado_mostrado
     if not calculadora_encendida or not expression:
         return
 
     try:
-        current_val = float(expression) if resultado_mostrado else float(screen_text.get())
-        percent_val = current_val / 100.0
-        formatted = f"{percent_val:.2f}"
-        expression = formatted
+        val = float(expression)
+        percent_val = val / 100.0
+        expression = f"{percent_val:.2f}"
         screen_text.set(expression)
         resultado_mostrado = True
     except ValueError:
@@ -131,7 +129,7 @@ def apply_percentage():
 
 
 def calcular_izq_a_der(exp):
-    """Evalúa la expresión secuencialmente de izquierda a derecha."""
+    """Evalúa la expresión secuencialmente con manejo de división por cero (RF-01, RF-04)."""
     tokens = []
     num = ""
     i = 0
@@ -198,6 +196,7 @@ def equalpress():
 
 
 def clear():
+    """Borrado total (C)."""
     global expression, resultado_mostrado
     if not calculadora_encendida:
         return
@@ -207,6 +206,7 @@ def clear():
 
 
 def backspace():
+    """Borrado del último carácter (CE)."""
     global expression, resultado_mostrado
     if not calculadora_encendida:
         return
@@ -236,7 +236,7 @@ def encender():
     screen_text.set('0')
 
 
-# --- Distribución de Teclado Clásico con % y +/- ---
+# --- Distribución de Teclado Clásico Corregido ---
 layout = [
     [("ON", "on"), ("OFF", "off"), ("C", "clear"), ("CE", "back")],
     [("%", "pct"), ("+/-", "sign"), ("/", "op"), ("*", "op")],
@@ -251,7 +251,6 @@ for r, fila in enumerate(layout, start=1):
         if tipo == "empty":
             continue
 
-        # Span del botón 0 para cubrir espacio
         colspan = 2 if texto == "0" else 1
 
         if tipo == "num":
@@ -260,12 +259,23 @@ for r, fila in enumerate(layout, start=1):
                 bg=color_boton, fg=color_texto, relief='flat',
                 command=lambda t=texto: press_num(t)
             )
-        elif tipo in ("op", "pct", "sign"):
-            cmd = press_operator if tipo == "op" else (apply_percentage if tipo == "pct" else toggle_sign)
+        elif tipo == "op":
             boton = tk.Button(
                 root, text=texto, font=('Arial', 14, 'bold'),
                 bg=color_boton_op, fg=color_texto, relief='flat',
-                command=lambda op=texto, c=cmd: c(op) if tipo == "op" else c()
+                command=lambda op=texto: press_operator(op)
+            )
+        elif tipo == "pct":
+            boton = tk.Button(
+                root, text=texto, font=('Arial', 14, 'bold'),
+                bg=color_boton_op, fg=color_texto, relief='flat',
+                command=apply_percentage
+            )
+        elif tipo == "sign":
+            boton = tk.Button(
+                root, text=texto, font=('Arial', 14, 'bold'),
+                bg=color_boton_op, fg=color_texto, relief='flat',
+                command=toggle_sign
             )
         elif tipo == "equal":
             boton = tk.Button(
