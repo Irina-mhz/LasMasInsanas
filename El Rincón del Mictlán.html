@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>El Rincón del Mictlán</title>
+<style>
+:root{--bg:#130418;--fg:#fff;--card:#fff;--cfg:#130418;--pri:#601986;--acc:#ff9f1c;--mut:#c9b3d6;--line:#3a1450;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f6eefa;--fg:#130418;--mut:#5b3a70;--line:#d9c3e6}}
+:root[data-theme="light"]{--bg:#f6eefa;--fg:#130418;--mut:#5b3a70;--line:#d9c3e6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Balsamic Sans','Trebuchet MS',system-ui,sans-serif}
+h1,h2,h3,.logo{font-family:'Rumble Brave',Impact,fantasy;letter-spacing:.5px;margin:0}
+.accent{font-family:'Silver Stone',Georgia,serif;color:var(--acc)}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--pri);display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;padding:.6rem 1rem}
+.logo{font-size:1.4rem;color:#fff;margin-right:auto;cursor:pointer}
+nav{display:flex;flex-wrap:wrap;gap:.3rem}
+button,.btn{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:.5rem .9rem;background:var(--acc);color:#130418;font-weight:700}
+button.ghost{background:transparent;color:#fff;border:1px solid #fff6}
+button.sm{padding:.25rem .6rem;font-size:.85rem}
+button.dan{background:#c0392b;color:#fff}
+button:disabled{opacity:.5;cursor:not-allowed}
+main{max-width:1100px;margin:0 auto;padding:1rem}
+.chips{display:flex;gap:.4rem;overflow-x:auto;padding:.5rem 0}
+.chip{white-space:nowrap;background:transparent;color:var(--fg);border:1px solid var(--line)}
+.chip.on{background:var(--pri);color:#fff}
+input,select,textarea{font:inherit;width:100%;padding:.5rem;border-radius:8px;border:1px solid var(--line);background:#fff;color:#130418;margin:.2rem 0 .6rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:1rem}
+.card{background:var(--card);color:var(--cfg);border-radius:16px;padding:1rem;display:flex;flex-direction:column;gap:.35rem}
+.emo{font-size:3.4rem;text-align:center;cursor:pointer}
+.price{font-weight:700;color:var(--pri)}
+.stars{color:var(--acc);letter-spacing:2px}
+.tag{background:#c0392b;color:#fff;border-radius:6px;padding:.1rem .5rem;font-size:.8rem;width:fit-content}
+.row{display:flex;gap:.5rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse}
+.scroll{overflow-x:auto}
+td,th{padding:.5rem;border-bottom:1px solid var(--line);text-align:left}
+#modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:1rem;z-index:10}
+#modal.on{display:flex}
+.box{background:var(--card);color:var(--cfg);border-radius:16px;padding:1.2rem;max-width:520px;width:100%;max-height:88vh;overflow:auto}
+#toast{position:fixed;left:50%;bottom:calc(1rem + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--acc);color:#130418;padding:.6rem 1rem;border-radius:10px;display:none;z-index:20;max-width:90%}
+pre{white-space:pre-wrap;font-size:.75rem;background:#f1e6f7;padding:.5rem;border-radius:8px}
+.mut{color:var(--mut)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" onclick="go('cat')">🕯️ El Rincón del Mictlán</div>
+  <nav id="nav"></nav>
+</header>
+<main id="app"></main>
+<div id="modal" onclick="if(event.target===this)closeM()"><div class="box" id="mbox"></div></div>
+<div id="toast"></div>
+
+<script>
+const SEED=[
+ {id:1,n:'Estante de madera para altar',c:'Altares',p:850,s:8,e:'🪵',d:'Estante de madera de pino de tres niveles para armar tu ofrenda.'},
+ {id:2,n:'Mantel decorativo tradicional',c:'Manteles',p:320,s:15,e:'🧣',d:'Mantel bordado con motivos de cempasúchil.'},
+ {id:3,n:'Copal e incienso',c:'Aromas',p:90,s:40,e:'🌫️',d:'Resina de copal natural para guiar a las almas.'},
+ {id:4,n:'Papel picado artesanal',c:'Papel picado',p:60,s:100,e:'🎏',d:'Set de 10 piezas recortadas a mano.'},
+ {id:5,n:'Calaverita de cerámica',c:'Calaveritas',p:120,s:20,e:'💀',d:'Calaverita pintada a mano. Tallas S, M, L y XL.',sizes:['S','M','L','XL']},
+ {id:6,n:'Marco para fotografía de difunto',c:'Marcos',p:180,s:12,e:'🖼️',d:'Marco de madera tallada para 5x7 in.'},
+ {id:7,n:'Flores de cempasúchil de terciopelo',c:'Flores',p:140,s:30,e:'🌼',d:'Ramo de flores artificiales de terciopelo.'},
+ {id:8,n:'Vela de pan de muerto',c:'Velas',p:75,s:25,e:'🕯️',d:'Vela en forma de pan de muerto.'},
+ {id:9,n:'Vela de Xoloitzcuintle',c:'Velas',p:95,s:0,e:'🐕',d:'Vela con la figura del fiel guía del Mictlán.'},
+ {id:10,n:'Mole con pollo (cerámica)',c:'Platillos',p:210,s:10,e:'🍗',d:'Figura de cerámica de mole con pollo.'},
+ {id:11,n:'Pozole (cerámica)',c:'Platillos',p:190,s:9,e:'🍲',d:'Figura de cerámica de pozole.'},
+ {id:12,n:'Tequila y cerveza (cerámica)',c:'Platillos',p:160,s:14,e:'🥃',d:'Bebidas tradicionales en miniatura de cerámica.'}
+];
+const ADMIN_CODE='MICTLAN-ADMIN';
+let db,view='cat',cat='Todas',q='';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money=n=>'$'+n.toFixed(2);
+const sha=async t=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+function save(){try{localStorage.setItem('mictlan',JSON.stringify(db))}catch(e){}}
+async function init(){
+  try{db=JSON.parse(localStorage.getItem('mictlan'))}catch(e){}
+  if(!db)db={users:[],products:SEED,wish:{},rev:{},orders:[],cart:[],me:null,nid:100};
+  if(!db.users.length)db.users.push({name:'Admin',email:'admin@mictlan.mx',pass:await sha('Admin123'),role:'Administrador'});
+  save();render();
+}
+const me=()=>db.users.find(u=>u.email===db.me);
+const isAdmin=()=>me()&&me().role==='Administrador';
+const prod=id=>db.products.find(p=>p.id===id);
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2600)}
+function openM(h){$('#mbox').innerHTML=h;$('#modal').classList.add('on')}
+function closeM(){$('#modal').classList.remove('on')}
+function go(v){if(v==='admin'&&!isAdmin()){toast('Acceso denegado: solo administradores.');return}view=v;render();scrollTo(0,0)}
+function avg(id){const r=db.rev[id]||[];return r.length?r.reduce((a,b)=>a+b.s,0)/r.length:0}
+const stars=n=>'★'.repeat(Math.round(n))+'☆'.repeat(5-Math.round(n));
+
+function render(){
+  const u=me(),n=db.cart.reduce((a,b)=>a+b.q,0);
+  $('#nav').innerHTML=`<button class="ghost" onclick="go('cat')">Catálogo</button>
+   <button class="ghost" onclick="go('wish')">♥ Favoritos</button>
+   <button class="ghost" onclick="go('cart')">🛒 Carrito (${n})</button>
+   ${u?`<button class="ghost" onclick="go('orders')">Mis pedidos</button>`:''}
+   ${isAdmin()?`<button onclick="go('admin')">Panel admin</button>`:''}
+   ${u?`<button class="ghost" onclick="logout()">Salir (${esc(u.name)})</button>`:`<button onclick="authM()">Ingresar</button>`}`;
+  const V={cat:vCat,wish:vWish,cart:vCart,orders:vOrders,admin:vAdmin};
+  if(view==='admin'&&!isAdmin())view='cat';
+  $('#app').innerHTML=V[view]();
+}
+function cardHTML(p){
+  const w=(db.wish[db.me]||[]).includes(p.id),out=p.s<=0;
+  return `<div class="card"><div class="emo" onclick="detail(${p.id})">${p.e}</div>
+   <b>${esc(p.n)}</b><span class="stars">${stars(avg(p.id))}</span>
+   <div class="row"><span class="price">${money(p.p)}</span>${out?'<span class="tag">Agotado</span>':`<span class="mut" style="font-size:.8rem">Stock: ${p.s}</span>`}</div>
+   <div class="row"><button class="sm" ${out?'disabled':''} onclick="add(${p.id})">${out?'Agotado':'Agregar'}</button>
+   <button class="sm" style="background:#eee" onclick="wish(${p.id})">${w?'♥':'♡'}</button></div></div>`;
+}
+function vCat(){
+  const cats=['Todas',...new Set(db.products.map(p=>p.c))];
+  const list=db.products.filter(p=>(cat==='Todas'||p.c===cat)&&p.n.toLowerCase().includes(q.toLowerCase()));
+  return `<h2>Ofrendas para Día de Muertos <span class="accent">✦</span></h2>
+   <input placeholder="Buscar producto…" value="${esc(q)}" oninput="q=this.value;render();document.querySelector('input').focus()">
+   <div class="chips">${cats.map(c=>`<button class="chip ${c===cat?'on':''}" onclick="cat='${c}';render()">${c}</button>`).join('')}</div>
+   <div class="grid">${list.map(cardHTML).join('')||'<p class="mut">Sin resultados.</p>'}</div>`;
+}
+function vWish(){
+  if(!me())return `<p>Inicia sesión para usar tu lista de favoritos.</p><button onclick="authM()">Ingresar</button>`;
+  const l=(db.wish[db.me]||[]).map(prod).filter(Boolean);
+  return `<h2>Mis favoritos</h2><div class="grid">${l.map(cardHTML).join('')||'<p class="mut">Aún no tienes favoritos.</p>'}</div>`;
+}
+function wish(id){
+  if(!me()){toast('Inicia sesión para guardar favoritos.');return authM()}
+  const l=db.wish[db.me]=db.wish[db.me]||[],i=l.indexOf(id);
+  i<0?l.push(id):l.splice(i,1);save();render();
+}
+function add(id,size){
+  const p=prod(id),inCart=db.cart.filter(l=>l.id===id).reduce((a,b)=>a+b.q,0);
+  if(inCart+1>p.s)return toast('No hay más existencias de este producto.'); // RN02
+  const l=db.cart.find(l=>l.id===id&&l.size===size);
+  l?l.q++:db.cart.push({id,q:1,size});save();render();toast('Agregado al carrito');
+}
+function qty(i,d){
+  const l=db.cart[i],p=prod(l.id),tot=db.cart.filter(x=>x.id===l.id).reduce((a,b)=>a+b.q,0);
+  if(d>0&&tot+1>p.s)return toast('Supera el stock disponible.');
+  l.q+=d;if(l.q<=0)db.cart.splice(i,1);save();render();
+}
+const total=()=>db.cart.reduce((a,l)=>a+prod(l.id).p*l.q,0);
+function vCart(){
+  if(!db.cart.length)return '<h2>Carrito</h2><p class="mut">Tu carrito está vacío.</p>';
+  return `<h2>Carrito</h2><div class="scroll"><table>${db.cart.map((l,i)=>{const p=prod(l.id);return `<tr><td>${p.e} ${esc(p.n)}${l.size?` (${l.size})`:''}</td><td>${money(p.p)}</td>
+   <td><button class="sm" onclick="qty(${i},-1)">−</button> ${l.q} <button class="sm" onclick="qty(${i},1)">+</button></td><td>${money(p.p*l.q)}</td></tr>`}).join('')}</table></div>
+   <div class="row" style="margin-top:1rem"><h3>Total: ${money(total())}</h3><button onclick="checkout()">Pagar</button></div>
+   ${me()?'':'<p class="mut">Puedes armar tu carrito como invitado, pero necesitas iniciar sesión para pagar.</p>'}`;
+}
+function checkout(){
+  if(!me()){toast('Inicia sesión para pagar.');return authM(true)} // RN01
+  openM(`<h3>Pasarela de pago</h3><p>Total: <b>${money(total())}</b></p>
+   <label>Método</label><select id="pm" onchange="$('#cf').style.display=this.value==='Tarjeta'?'block':'none'">
+   <option>Tarjeta</option><option>PayPal</option><option>Google Play</option></select>
+   <div id="cf"><label>Número de tarjeta (simulado)</label><input id="cn" inputmode="numeric" maxlength="19" placeholder="4242 4242 4242 4242"></div>
+   <p class="mut" style="font-size:.8rem">Simulación: no se procesa ningún cobro real.</p>
+   <button onclick="pay()">Confirmar pago</button> <button class="sm" onclick="closeM()">Cancelar</button>`);
+}
+function pay(){
+  const m=$('#pm').value;
+  if(m==='Tarjeta'&&$('#cn').value.replace(/\D/g,'').length!==16)return toast('Ingresa una tarjeta de 16 dígitos.');
+  for(const l of db.cart){if(prod(l.id).s<l.q)return toast('Stock insuficiente para '+prod(l.id).n)}
+  db.cart.forEach(l=>prod(l.id).s-=l.q);
+  db.orders.push({id:'P'+Date.now().toString().slice(-6),email:db.me,date:new Date().toISOString(),items:db.cart.map(l=>({id:l.id,n:prod(l.id).n,p:prod(l.id).p,q:l.q,size:l.size})),total:total(),method:m,inv:null});
+  db.cart=[];save();closeM();view='orders';render();toast('¡Pago exitoso!');
+}
+function vOrders(){
+  const o=db.orders.filter(x=>x.email===db.me);
+  if(!o.length)return '<h2>Mis pedidos</h2><p class="mut">Aún no tienes compras.</p>';
+  return `<h2>Mis pedidos</h2>`+o.reverse().map(x=>`<div class="card" style="margin-bottom:.8rem"><div class="row"><b>Pedido ${x.id}</b><span>${new Date(x.date).toLocaleDateString('es-MX')}</span></div>
+   <div>${x.items.map(i=>`${i.q}× ${esc(i.n)}${i.size?` (${i.size})`:''}`).join('<br>')}</div>
+   <div class="row"><span class="price">${money(x.total)} · ${x.method}</span>
+   <button class="sm" onclick="invM('${x.id}')">${x.inv?'Ver CFDI':'Facturar'}</button></div></div>`).join('');
+}
+function invM(id){
+  const o=db.orders.find(x=>x.id===id);
+  if(o.inv)return openM(`<h3>CFDI ${o.id}</h3><pre>${esc(o.inv)}</pre><button onclick="closeM()">Cerrar</button>`);
+  const d=new Date(o.date),n=new Date();
+  if(d.getMonth()!==n.getMonth()||d.getFullYear()!==n.getFullYear())return toast('La factura debe solicitarse en el mismo mes de la compra.'); // RN04
+  openM(`<h3>Datos fiscales</h3><label>RFC</label><input id="rfc" maxlength="13" placeholder="XAXX010101000">
+   <label>Razón social</label><input id="rs"><label>Código postal</label><input id="cp" maxlength="5">
+   <button onclick="genInv('${id}')">Generar CFDI</button>`);
+}
+function genInv(id){
+  const o=db.orders.find(x=>x.id===id),rfc=$('#rfc').value.trim().toUpperCase(),rs=$('#rs').value.trim(),cp=$('#cp').value.trim();
+  if(!/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(rfc)||!rs||!/^\d{5}$/.test(cp))return toast('Revisa RFC, razón social y C.P.');
+  o.inv=`<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante Folio="${o.id}" Fecha="${o.date}" Total="${o.total.toFixed(2)}" Moneda="MXN">
+  <cfdi:Emisor Nombre="El Rincón del Mictlán"/>
+  <cfdi:Receptor Rfc="${esc(rfc)}" Nombre="${esc(rs)}" DomicilioFiscalReceptor="${cp}"/>
+  <cfdi:Conceptos>
+${o.items.map(i=>`    <cfdi:Concepto Cantidad="${i.q}" Descripcion="${esc(i.n)}" ValorUnitario="${i.p.toFixed(2)}"/>`).join('\n')}
+  </cfdi:Conceptos>
+</cfdi:Comprobante>`;
+  save();invM(id);render();
+}
+function detail(id){
+  const p=prod(id),out=p.s<=0,u=me();
+  const rev=db.rev[id]||[],bought=u&&db.orders.some(o=>o.email===db.me&&o.items.some(i=>i.id===id)); // RN03
+  const rel=db.products.filter(x=>x.c===p.c&&x.id!==id).slice(0,3); // RF07
+  const recs=rel.length?rel:db.products.filter(x=>x.id!==id).slice(0,3);
+  openM(`<div class="emo" style="cursor:default">${p.e}</div><h3>${esc(p.n)}</h3>
+   <p>${esc(p.d)}</p><p class="price">${money(p.p)} <span class="stars">${stars(avg(id))}</span> <span class="mut">(${rev.length})</span></p>
+   ${p.sizes?`<label>Talla</label><select id="sz">${p.sizes.map(s=>`<option>${s}</option>`).join('')}</select>`:''}
+   <button ${out?'disabled':''} onclick="add(${id},${p.sizes?'$(\'#sz\').value':'undefined'})">${out?'Agotado':'Agregar al carrito'}</button>
+   <h3 style="margin-top:1rem">Reseñas</h3>
+   ${rev.map(r=>`<p><span class="stars">${stars(r.s)}</span> <b>${esc(r.u)}</b><br>${esc(r.t)}</p>`).join('')||'<p class="mut">Sin reseñas todavía.</p>'}
+   ${bought?`<select id="rs5"><option value="5">5 ★</option><option value="4">4 ★</option><option value="3">3 ★</option><option value="2">2 ★</option><option value="1">1 ★</option></select>
+   <textarea id="rt" rows="2" placeholder="Tu comentario"></textarea><button class="sm" onclick="review(${id})">Publicar reseña</button>`
+   :'<p class="mut" style="font-size:.85rem">Solo clientes con compra confirmada pueden reseñar.</p>'}
+   <h3 style="margin-top:1rem">También te puede gustar</h3>
+   <div class="row">${recs.map(r=>`<button class="sm" style="background:#eee" onclick="detail(${r.id})">${r.e} ${esc(r.n)}</button>`).join('')}</div>`);
+}
+function review(id){
+  const t=$('#rt').value.trim();if(!t)return toast('Escribe un comentario.');
+  (db.rev[id]=db.rev[id]||[]).push({u:me().name,s:+$('#rs5').value,t});save();detail(id);render();
+}
+/* ---------- Auth ---------- */
+function authM(fromCart){
+  openM(`<h3>Ingresar o registrarse</h3>
+   <label>Correo</label><input id="ae" type="email"><label>Contraseña</label><input id="ap" type="password">
+   <button onclick="login()">Ingresar</button>
+   <hr><b>¿Eres nuevo?</b><label>Nombre</label><input id="an">
+   <label>Rol</label><select id="ar" onchange="$('#ac').style.display=this.value==='Administrador'?'block':'none'"><option>Cliente</option><option>Administrador</option></select>
+   <input id="ac" style="display:none" placeholder="Código de administrador">
+   <button onclick="register()">Crear cuenta</button>
+   <p class="mut" style="font-size:.8rem">Demo admin: admin@mictlan.mx / Admin123 · Código para nuevos admins: ${ADMIN_CODE}</p>`);
+}
+async function login(){
+  const u=db.users.find(x=>x.email===$('#ae').value.trim().toLowerCase());
+  if(!u||u.pass!==await sha($('#ap').value))return toast('Credenciales incorrectas.');
+  db.me=u.email;save();closeM();render();toast('Bienvenido, '+u.name);
+}
+async function register(){
+  const e=$('#ae').value.trim().toLowerCase(),p=$('#ap').value,n=$('#an').value.trim(),r=$('#ar').value;
+  if(!n||!/^\S+@\S+\.\S+$/.test(e)||p.length<6)return toast('Nombre, correo válido y contraseña de 6+ caracteres.');
+  if(db.users.some(x=>x.email===e))return toast('Ese correo ya está registrado.');
+  if(r==='Administrador'&&$('#ac').value!==ADMIN_CODE)return toast('Código de administrador inválido.');
+  db.users.push({name:n,email:e,pass:await sha(p),role:r}); // RNF01: hash
+  db.me=e;save();closeM();render();toast('Cuenta creada');
+}
+function logout(){db.me=null;view='cat';save();render()}
+/* ---------- Admin CRUD ---------- */
+function vAdmin(){
+  return `<div class="row"><h2>Inventario</h2><button onclick="prodM()">+ Nuevo producto</button></div>
+  <div class="scroll"><table><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th></th></tr>
+  ${db.products.map(p=>`<tr><td>${p.e} ${esc(p.n)}</td><td>${esc(p.c)}</td><td>${money(p.p)}</td><td>${p.s<=0?'<span class="tag">Agotado</span>':p.s}</td>
+  <td><button class="sm" onclick="prodM(${p.id})">Editar</button> <button class="sm dan" onclick="del(${p.id})">Eliminar</button></td></tr>`).join('')}</table></div>`;
+}
+function prodM(id){
+  if(!isAdmin())return;
+  const p=id?prod(id):{n:'',c:'',p:0,s:0,e:'🕯️',d:''};
+  openM(`<h3>${id?'Editar':'Nuevo'} producto</h3>
+   <label>Nombre</label><input id="pn" value="${esc(p.n)}"><label>Categoría</label><input id="pc" value="${esc(p.c)}">
+   <label>Emoji / imagen</label><input id="pe" value="${esc(p.e)}"><label>Precio</label><input id="pp" type="number" min="0" value="${p.p}">
+   <label>Stock</label><input id="ps" type="number" min="0" value="${p.s}"><label>Descripción</label><textarea id="pd" rows="2">${esc(p.d)}</textarea>
+   <button onclick="saveP(${id||0})">Guardar</button>`);
+}
+function saveP(id){
+  if(!isAdmin())return; // RN05
+  const d={n:$('#pn').value.trim(),c:$('#pc').value.trim(),e:$('#pe').value.trim()||'🕯️',p:+$('#pp').value,s:Math.max(0,Math.floor(+$('#ps').value)),d:$('#pd').value.trim()};
+  if(!d.n||!d.c||d.p<0)return toast('Completa nombre, categoría y precio.');
+  id?Object.assign(prod(id),d):db.products.push({id:db.nid++,...d});
+  save();closeM();render();
+}
+function del(id){if(isAdmin()&&confirm('¿Eliminar producto?')){db.products=db.products.filter(p=>p.id!==id);db.cart=db.cart.filter(l=>l.id!==id);save();render()}}
+init();
+</script>
+</body>
+</html>
